@@ -22,6 +22,23 @@ public class HandEvaluator {
         STRAIGHT_FLUSH,
         ROYAL_FLUSH
     }
+    
+    // This new method compares two hands and returns which one is stronger.
+    // It returns a positive number if hand1 is stronger, a negative number if hand2 is stronger,
+    // and 0 if the hands are of equal strength.
+    public static int compareHands(Hand hand1, Hand hand2) {
+        HandRank rank1 = evaluateFiveCardHand(hand1);
+        HandRank rank2 = evaluateFiveCardHand(hand2);
+
+        // First, compare the hands by their rank (e.g., Flush beats Straight).
+        int rankComparison = rank1.compareTo(rank2);
+        if (rankComparison != 0) {
+            return rankComparison;
+        }
+
+        // If the ranks are the same, we need to compare the hands based on the card ranks.
+        return compareHandsWithSameRank(hand1, hand2, rank1);
+    }
 
     // This method will be used to determine the rank of a 5-card hand.
     public static HandRank evaluateFiveCardHand(Hand hand) {
@@ -30,6 +47,18 @@ public class HandEvaluator {
 
         boolean isFlush = isFlush(hand);
         boolean isStraight = isStraight(hand);
+
+        // Check for a Royal Flush
+        // This is the strongest hand, so we check for it first.
+        if (isStraight && isFlush && hand.getCards().get(4).getRank() == 14) {
+            return HandRank.ROYAL_FLUSH;
+        }
+
+        // Check for a Straight Flush
+        // This is the second strongest hand.
+        if (isStraight && isFlush) {
+            return HandRank.STRAIGHT_FLUSH;
+        }
 
         // Check for Four of a Kind
         if (rankCounts.containsValue(4L)) {
@@ -86,7 +115,27 @@ public class HandEvaluator {
         return HandRank.HIGH_CARD;
     }
 
-    // --- New helper methods for hand evaluation ---
+    // --- Helper methods for hand evaluation ---
+
+    // This new method compares two hands of the same rank to break a tie.
+    private static int compareHandsWithSameRank(Hand hand1, Hand hand2, HandRank rank) {
+        // Since the ranks are the same, we need to compare the hands based on the card values.
+        // We will compare card by card, from highest to lowest.
+        
+        // The hands are already sorted from the evaluateFiveCardHand method.
+        List<Card> cards1 = hand1.getCards();
+        List<Card> cards2 = hand2.getCards();
+        
+        for (int i = cards1.size() - 1; i >= 0; i--) {
+            int cardComparison = Integer.compare(cards1.get(i).getRank(), cards2.get(i).getRank());
+            if (cardComparison != 0) {
+                return cardComparison;
+            }
+        }
+
+        // If all cards have the same rank, the hands are a tie.
+        return 0;
+    }
 
     // This method checks if a 5-card hand is a straight.
     private static boolean isStraight(Hand hand) {
