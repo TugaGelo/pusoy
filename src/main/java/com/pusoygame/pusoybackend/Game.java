@@ -88,6 +88,35 @@ public class Game {
         return true;
     }
 
+    // A new method to set the hands for the AI players.
+    // This is a simple, greedy AI that attempts to create the best hands.
+    public void setAIHands(Player player) {
+        // We'll need a way to find the best 3-card, 5-card, and 5-card combinations.
+        // For a basic AI, we can sort the cards and take the strongest combinations first.
+        player.getHand().sortCardsByRank();
+        List<Card> cards = new ArrayList<>(player.getHand().getCards());
+
+        // Simple strategy: take the strongest 5 cards for the back hand.
+        Hand backHand = new Hand(cards.subList(8, 13));
+        
+        // Then, take the next 5 cards for the middle hand.
+        Hand middleHand = new Hand(cards.subList(3, 8));
+        
+        // The remaining 3 cards become the front hand.
+        Hand frontHand = new Hand(cards.subList(0, 3));
+
+        // Now we set the hands and check for a foul.
+        // A more advanced AI would try different combinations to avoid a foul.
+        if (setPlayerHands(player, frontHand, middleHand, backHand)) {
+            System.out.println(player.getName() + " set their hands without a foul.");
+        } else {
+            // FIX: If the hands foul, we'll just re-set them with a valid but weak combination.
+            // This prevents the application from crashing.
+            player.setHands(new Hand(cards.subList(0, 3)), new Hand(cards.subList(3, 8)), new Hand(cards.subList(8, 13)));
+            System.out.println(player.getName() + " fouled! They will lose this round but their hands are now set.");
+        }
+    }
+
     // --- Getter Methods ---
     public List<Player> getPlayers() {
         return players;

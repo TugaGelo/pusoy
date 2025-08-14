@@ -27,17 +27,48 @@ public class HandEvaluator {
     // It returns a positive number if hand1 is stronger, a negative number if hand2 is stronger,
     // and 0 if the hands are of equal strength.
     public static int compareHands(Hand hand1, Hand hand2) {
+        // --- FIX: Handle hands of different sizes first ---
+        if (hand1.getCards().size() > hand2.getCards().size()) {
+            return 1;
+        } else if (hand1.getCards().size() < hand2.getCards().size()) {
+            return -1;
+        }
+        // --- END FIX ---
+
+        // If the hands are of the same size, we proceed with the existing logic.
+        if (hand1.getCards().size() == 5) {
+            return compareFiveCardHands(hand1, hand2);
+        } else if (hand1.getCards().size() == 3) {
+            return compareThreeCardHands(hand1, hand2);
+        }
+        
+        return 0;
+    }
+
+    // A dedicated method for comparing two 5-card hands.
+    private static int compareFiveCardHands(Hand hand1, Hand hand2) {
         HandRank rank1 = evaluateFiveCardHand(hand1);
         HandRank rank2 = evaluateFiveCardHand(hand2);
 
-        // First, compare the hands by their rank (e.g., Flush beats Straight).
         int rankComparison = rank1.compareTo(rank2);
         if (rankComparison != 0) {
             return rankComparison;
         }
 
-        // If the ranks are the same, we need to compare the hands based on the card ranks.
-        return compareHandsWithSameRank(hand1, hand2, rank1);
+        return compareHandsWithSameRank(hand1, hand2);
+    }
+
+    // A dedicated method for comparing two 3-card hands.
+    private static int compareThreeCardHands(Hand hand1, Hand hand2) {
+        HandRank rank1 = evaluateThreeCardHand(hand1);
+        HandRank rank2 = evaluateThreeCardHand(hand2);
+
+        int rankComparison = rank1.compareTo(rank2);
+        if (rankComparison != 0) {
+            return rankComparison;
+        }
+
+        return compareHandsWithSameRank(hand1, hand2);
     }
 
     // This method will be used to determine the rank of a 5-card hand.
@@ -118,14 +149,12 @@ public class HandEvaluator {
     // --- Helper methods for hand evaluation ---
 
     // This new method compares two hands of the same rank to break a tie.
-    private static int compareHandsWithSameRank(Hand hand1, Hand hand2, HandRank rank) {
-        // Since the ranks are the same, we need to compare the hands based on the card values.
-        // We will compare card by card, from highest to lowest.
-        
-        // The hands are already sorted from the evaluateFiveCardHand method.
+    private static int compareHandsWithSameRank(Hand hand1, Hand hand2) {
+        // The hands are already sorted.
         List<Card> cards1 = hand1.getCards();
         List<Card> cards2 = hand2.getCards();
         
+        // The hands should have the same size.
         for (int i = cards1.size() - 1; i >= 0; i--) {
             int cardComparison = Integer.compare(cards1.get(i).getRank(), cards2.get(i).getRank());
             if (cardComparison != 0) {
