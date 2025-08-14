@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pusoy Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c;
+            color: #e2e8f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .card {
+            width: 80px;
+            height: 112px;
+            background-color: #fff;
+            color: #333;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s ease-in-out;
+            position: relative;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card.red {
+            color: #ef4444;
+        }
+        .card.selected {
+            border: 2px solid #3b82f6;
+            transform: translateY(-10px);
+        }
+        .rank {
+            font-size: 24px;
+        }
+        .suit {
+            font-size: 18px;
+        }
+        .header {
+            font-size: 14px;
+            line-height: 1;
+        }
+        .footer {
+            font-size: 14px;
+            line-height: 1;
+            transform: rotate(180deg);
+        }
+        .hand-container {
+            min-height: 120px;
+            border: 2px dashed #4b5563;
+            border-radius: 8px;
+            padding: 8px;
+            margin-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 flex flex-col items-center p-8">
+
+    <h1 class="text-4xl font-bold mb-8 text-white">Pusoy Game</h1>
+
+    <div id="game-board" class="w-full max-w-7xl">
+        <div id="status-message" class="text-center text-xl font-medium mb-8">Loading game data...</div>
+
+        <!-- Human player's interactive hand -->
+        <div class="mb-8 p-6 bg-gray-800 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-semibold mb-4 text-center">Your Hand</h2>
+            <div id="human-hand-container" class="flex flex-wrap justify-center mb-4">
+                <!-- Human player's cards will be rendered here -->
+            </div>
+
+            <!-- Hand setting areas -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-gray-700 p-4 rounded-lg shadow-md">
+                    <h4 class="text-sm font-medium text-gray-400 text-center">Front Hand (3 cards)</h4>
+                    <div id="human-front-hand-drop" class="hand-container"></div>
+                </div>
+                <div class="bg-gray-700 p-4 rounded-lg shadow-md">
+                    <h4 class="text-sm font-medium text-gray-400 text-center">Middle Hand (5 cards)</h4>
+                    <div id="human-middle-hand-drop" class="hand-container"></div>
+                </div>
+                <div class="bg-gray-700 p-4 rounded-lg shadow-md">
+                    <h4 class="text-sm font-medium text-gray-400 text-center">Back Hand (5 cards)</h4>
+                    <div id="human-back-hand-drop" class="hand-container"></div>
+                </div>
+            </div>
+
+            <div class="flex justify-center mt-6">
+                <button id="set-hands-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-full shadow-lg transition-colors">
+                    Set Hands
+                </button>
+            </div>
+        </div>
+
+        <!-- AI players' hands -->
+        <div class="mb-8 p-6 bg-gray-800 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-semibold mb-4 text-center">AI Players</h2>
+            <div id="ai-players-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- AI player hands will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let humanPlayer = {};
+        let selectedCards = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchGameData();
+        });
+
+        // Function to fetch the game data from the Spring Boot backend
+        const fetchGameData = async () => {
+            try {
+                const response = await fetch('http://localhost:8080/game');
+                const game = await response.json();
+                
+                // Store the human player for later use
+                humanPlayer = game.players.find(p => p.name === "Human");
+
+                // Render the game state on the page
+                renderGame(game);
+            } catch (error) {
+                console.error('Error fetching game data:', error);
+                document.getElementById('status-message').textContent = 'Error: Could not connect to the backend.';
+            }
+        };
+
+        // Function to render the game state on the page
+        const renderGame = (game) => {
+            const playersContainer = document.getElementById('ai-players-container');
+            playersContainer.innerHTML = ''; // Clear previous content
+
+            game.players.forEach(player => {
+                if (player.name === "Human") {
+                    renderHumanHand(player.hand.cards);
+                } else {
+                    const playerDiv = document.createElement('div');
+                    playerDiv.className = 'bg-gray-700 p-4 rounded-lg shadow-md';
+                    playerDiv.innerHTML = `
+                        <h3 class="text-xl font-semibold text-center mb-2">${player.name}</h3>
+                        <div class="flex flex-col items-center">
+                            <div class="mb-2">
+                                <h4 class="text-sm font-medium text-gray-400">Front Hand (3 cards)</h4>
+                                <div class="flex flex-wrap justify-center" id="front-hand-${player.id}"></div>
+                            </div>
+                            <div class="mb-2">
+                                <h4 class="text-sm font-medium text-gray-400">Middle Hand (5 cards)</h4>
+                                <div class="flex flex-wrap justify-center" id="middle-hand-${player.id}"></div>
+                            </div>
+                            <div class="mb-2">
+                                <h4 class="text-sm font-medium text-gray-400">Back Hand (5 cards)</h4>
+                                <div class="flex flex-wrap justify-center" id="back-hand-${player.id}"></div>
+                            </div>
+                        </div>
+                    `;
+                    playersContainer.appendChild(playerDiv);
+
+                    // Render the hands if they are not null
+                    if (player.frontHand) {
+                        renderHand(player.frontHand.cards, `front-hand-${player.id}`);
+                    }
+                    if (player.middleHand) {
+                        renderHand(player.middleHand.cards, `middle-hand-${player.id}`);
+                    }
+                    if (player.backHand) {
+                        renderHand(player.backHand.cards, `back-hand-${player.id}`);
+                    }
+                }
+            });
+
+            document.getElementById('status-message').textContent = 'Game state loaded! Select your cards and set your hands.';
+        };
+
+        // Renders the human player's hand with click handlers
+        const renderHumanHand = (cards) => {
+            const container = document.getElementById('human-hand-container');
+            container.innerHTML = '';
+            cards.forEach(card => {
+                const cardDiv = createCardElement(card);
+                cardDiv.addEventListener('click', () => {
+                    toggleCardSelection(card, cardDiv);
+                });
+                container.appendChild(cardDiv);
+            });
+        };
+
+        const toggleCardSelection = (card, element) => {
+            const index = selectedCards.findIndex(c => c.suit === card.suit && c.rank === card.rank);
+            if (index > -1) {
+                selectedCards.splice(index, 1);
+                element.classList.remove('selected');
+            } else {
+                selectedCards.push(card);
+                element.classList.add('selected');
+            }
+        };
+
+        // Helper function to render an individual hand of cards
+        const renderHand = (cards, containerId) => {
+            const container = document.getElementById(containerId);
+            cards.forEach(card => {
+                const cardDiv = createCardElement(card);
+                container.appendChild(cardDiv);
+            });
+        };
+
+        // Helper function to create a card's HTML element
+        const createCardElement = (card) => {
+            const cardDiv = document.createElement('div');
+            const isRedSuit = card.suit === 'Hearts' || card.suit === 'Diamonds';
+            const rankSymbol = getRankSymbol(card.rank);
+            const suitSymbol = getSuitSymbol(card.suit);
+            cardDiv.className = `card ${isRedSuit ? 'red' : 'black'}`;
+            cardDiv.innerHTML = `
+                <div class="header">${rankSymbol} ${suitSymbol}</div>
+                <div class="rank">${rankSymbol}</div>
+                <div class="suit">${suitSymbol}</div>
+                <div class="footer">${rankSymbol} ${suitSymbol}</div>
+            `;
+            return cardDiv;
+        };
+
+        // Helper function to convert rank numbers to symbols (A, K, Q, J)
+        const getRankSymbol = (rank) => {
+            if (rank > 10) {
+                switch (rank) {
+                    case 11: return 'J';
+                    case 12: return 'Q';
+                    case 13: return 'K';
+                    case 14: return 'A';
+                }
+            }
+            return rank;
+        };
+
+        // Helper function to convert suit names to symbols
+        const getSuitSymbol = (suit) => {
+            switch (suit) {
+                case 'Hearts': return '♥';
+                case 'Diamonds': return '♦';
+                case 'Clubs': return '♣';
+                case 'Spades': return '♠';
+                default: return '';
+            }
+        };
+    </script>
+</body>
+</html>

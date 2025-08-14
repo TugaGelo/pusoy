@@ -125,6 +125,54 @@ public class Game {
         System.out.println(player.getName() + " fouled! They will lose this round but their hands are now set with the default fallback.");
     }
 
+    // A new method to compare all players' hands and determine the winner.
+    public void compareAllPlayerHands() {
+        // We'll iterate through all players and compare their hands against each other.
+        // For this initial version, we will only print the results.
+        System.out.println("\n--- Starting the Showdown ---");
+        
+        for (int i = 0; i < players.size(); i++) {
+            for (int j = i + 1; j < players.size(); j++) {
+                Player player1 = players.get(i);
+                Player player2 = players.get(j);
+
+                if (player1.getBackHand() != null && player2.getBackHand() != null) {
+                    System.out.println("Comparing hands for " + player1.getName() + " vs " + player2.getName() + ":");
+
+                    // Compare Back Hands
+                    int backComparison = HandEvaluator.compareHands(player1.getBackHand(), player2.getBackHand());
+                    if (backComparison > 0) {
+                        System.out.println("- " + player1.getName() + "'s back hand wins!");
+                    } else if (backComparison < 0) {
+                        System.out.println("- " + player2.getName() + "'s back hand wins!");
+                    } else {
+                        System.out.println("- Back hands are a tie!");
+                    }
+
+                    // Compare Middle Hands
+                    int middleComparison = HandEvaluator.compareHands(player1.getMiddleHand(), player2.getMiddleHand());
+                    if (middleComparison > 0) {
+                        System.out.println("- " + player1.getName() + "'s middle hand wins!");
+                    } else if (middleComparison < 0) {
+                        System.out.println("- " + player2.getName() + "'s middle hand wins!");
+                    } else {
+                        System.out.println("- Middle hands are a tie!");
+                    }
+
+                    // Compare Front Hands
+                    int frontComparison = HandEvaluator.compareHands(player1.getFrontHand(), player2.getFrontHand());
+                    if (frontComparison > 0) {
+                        System.out.println("- " + player1.getName() + "'s front hand wins!");
+                    } else if (frontComparison < 0) {
+                        System.out.println("- " + player2.getName() + "'s front hand wins!");
+                    } else {
+                        System.out.println("- Front hands are a tie!");
+                    }
+                }
+            }
+        }
+    }
+
     // --- Getter Methods ---
     public List<Player> getPlayers() {
         return players;

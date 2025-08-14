@@ -11,11 +11,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class HelloController {
 
     // This method handles GET requests to the root URL ("/").
-    @GetMapping("/")
-    public String hello() {
-        return "Hello from your Pusoy Game Backend! Go to /game to start playing.";
-    }
-
+    // We are removing this method to allow the index.html file to be served.
+    
     // The @GetMapping annotation maps HTTP GET requests to this method.
     // The path "/game" means this method will be triggered when a user accesses that URL.
     @GetMapping("/game")
@@ -33,13 +30,17 @@ public class HelloController {
         Game game = new Game(players);
 
         // --- Phase 3: Have the AI players set their hands ---
-        // This is the new part of the code. We loop through the players.
-        for (int i = 1; i < players.size(); i++) { // We start at index 1 to skip the human player.
+        // We start at index 1 to skip the human player.
+        for (int i = 1; i < players.size(); i++) {
             Player aiPlayer = players.get(i);
             game.setAIHands(aiPlayer);
         }
         
-        // --- Phase 4: Return the game state ---
+        // --- Phase 4: Compare all players' hands (The Showdown) ---
+        // This is the new part of the code. We call the new method to compare the hands.
+        game.compareAllPlayerHands();
+
+        // --- Phase 5: Return the game state ---
         // Spring Boot automatically converts this Game object into a JSON response.
         return game;
     }
