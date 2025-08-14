@@ -2,6 +2,7 @@ package com.pusoygame.pusoybackend;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 // The Game class manages the game state, including the deck and the players.
@@ -53,6 +54,14 @@ public class Game {
                 playerCardList.add(deck.remove(0)); // Take a card from the top of the deck.
             }
             player.setHand(new Hand(playerCardList)); // Give the player their hand.
+        }
+    }
+    
+    // This is a new method that will sort the cards in a player's hand.
+    // This will be useful for both displaying cards and for the AI logic.
+    public void sortPlayerHand(Player player) {
+        if (player != null && player.getHand() != null) {
+            Collections.sort(player.getHand().getCards(), Comparator.comparingInt(Card::getRank));
         }
     }
 
