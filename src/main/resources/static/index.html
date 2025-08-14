@@ -106,6 +106,9 @@
                 <button id="set-hands-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-full shadow-lg transition-colors">
                     Set Hands
                 </button>
+                <button id="new-game-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-full shadow-lg transition-colors ml-4">
+                    New Game
+                </button>
             </div>
         </div>
 
@@ -114,6 +117,12 @@
             <h2 class="text-2xl font-semibold mb-4 text-center">AI Players</h2>
             <div id="ai-players-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             </div>
+        </div>
+        
+        <!-- Showdown Results -->
+        <div id="showdown-results" class="results-container hidden">
+            <h3 class="text-2xl font-semibold text-center mb-4">Showdown Results</h3>
+            <div id="results-content"></div>
         </div>
     </div>
 
@@ -134,6 +143,11 @@
                 humanPlayer = game.players.find(p => p.name === "Human");
 
                 renderGame(game);
+                
+                if (humanPlayer.frontHand && humanPlayer.middleHand && humanPlayer.backHand) {
+                    renderShowdownResults(game);
+                }
+
             } catch (error) {
                 console.error('Error fetching game data:', error);
                 document.getElementById('status-message').textContent = 'Error: Could not connect to the backend.';
@@ -144,10 +158,18 @@
         const renderGame = (game) => {
             const playersContainer = document.getElementById('ai-players-container');
             playersContainer.innerHTML = '';
+            document.getElementById('showdown-results').classList.add('hidden');
 
             game.players.forEach(player => {
                 if (player.name === "Human") {
-                    renderHumanHand(player.hand.cards);
+                    if (player.frontHand && player.middleHand && player.backHand) {
+                        document.getElementById('human-hand-container').innerHTML = '';
+                        renderHands(player.frontHand.cards, 'human-front-hand-drop');
+                        renderHands(player.middleHand.cards, 'human-middle-hand-drop');
+                        renderHands(player.backHand.cards, 'human-back-hand-drop');
+                    } else {
+                        renderHumanHand(player.hand.cards);
+                    }
                 } else {
                     const playerDiv = document.createElement('div');
                     playerDiv.className = 'bg-gray-700 p-4 rounded-lg shadow-md';
@@ -170,35 +192,45 @@
                     `;
                     playersContainer.appendChild(playerDiv);
 
-                    // Render the hands if they are not null
                     if (player.frontHand) {
-                        renderHand(player.frontHand.cards, `front-hand-${player.id}`);
+                        renderHands(player.frontHand.cards, `front-hand-${player.id}`);
                     }
                     if (player.middleHand) {
-                        renderHand(player.middleHand.cards, `middle-hand-${player.id}`);
+                        renderHands(player.middleHand.cards, `middle-hand-${player.id}`);
                     }
                     if (player.backHand) {
-                        renderHand(player.backHand.cards, `back-hand-${player.id}`);
+                        renderHands(player.backHand.cards, `back-hand-${player.id}`);
                     }
                 }
             });
 
             document.getElementById('status-message').textContent = 'Game state loaded! Select your cards and set your hands.';
             
-            // Add click handlers for the drop zones
             document.querySelectorAll('.hand-container').forEach(container => {
                 container.addEventListener('click', () => {
                     moveSelectedCardsToContainer(container.id);
                 });
             });
 
-            // Add click handler for the set hands button
-            document.getElementById('set-hands-btn').addEventListener('click', () => {
-                setHumanHands();
-            });
+            document.getElementById('set-hands-btn').addEventListener('click', setHumanHands);
+            document.getElementById('new-game-btn').addEventListener('click', newGame);
         };
         
-        // Renders the human player's hand with click handlers
+        const renderShowdownResults = (game) => {
+            const resultsContainer = document.getElementById('showdown-results');
+            const resultsContent = document.getElementById('results-content');
+            resultsContent.innerHTML = '';
+            resultsContainer.classList.remove('hidden');
+
+            const results = game.showdownResults;
+            if (results) {
+                const resultsHtml = `
+                    <p class="text-center text-lg font-medium mb-2">${results.winner.name} won the round!</p>
+                `;
+                resultsContent.innerHTML = resultsHtml;
+            }
+        };
+
         const renderHumanHand = (cards) => {
             const container = document.getElementById('human-hand-container');
             container.innerHTML = '';
@@ -236,7 +268,7 @@
             });
         };
         
-        const setHumanHands = () => {
+        const setHumanHands = async () => {
             const frontHand = document.getElementById('human-front-hand-drop');
             const middleHand = document.getElementById('human-middle-hand-drop');
             const backHand = document.getElementById('human-back-hand-drop');
@@ -254,13 +286,55 @@
             const middleCards = getCardsFromContainer(middleHand);
             const backCards = getCardsFromContainer(backHand);
             
-            console.log('Human Hands Submitted:');
-            console.log('Front Hand:', frontCards);
-            console.log('Middle Hand:', middleCards);
-            console.log('Back Hand:', backCards);
-            alert('Hands set successfully! (Check the console)');
+            const submissionData = {
+                playerId: humanPlayer.id,
+                frontHand: frontCards,
+                middleHand: middleCards,
+                backHand: backCards
+            };
+            
+            try {
+                const response = await fetch('http://localhost:8080/game/set-hands', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(submissionData),
+                });
+                
+                const game = await response.json();
+                
+                if (response.ok) {
+                    alert('Hands set successfully! Now refreshing the game state.');
+                    
+                    renderGame(game);
+                } else {
+                    alert('Error setting hands: ' + game.message);
+                }
+                
+            } catch (error) {
+                console.error('Error submitting hands:', error);
+                alert('An error occurred while communicating with the server.');
+            }
         };
 
+        const newGame = async () => {
+            try {
+                const response = await fetch('http://localhost:8080/game/new');
+                const game = await response.json();
+                
+                humanPlayer = game.players.find(p => p.name === "Human");
+                
+                renderGame(game);
+                
+                document.getElementById('showdown-results').classList.add('hidden');
+                
+            } catch (error) {
+                console.error('Error starting a new game:', error);
+                document.getElementById('status-message').textContent = 'Error: Could not connect to the backend.';
+            }
+        };
+        
         const getCardsFromContainer = (container) => {
             return Array.from(container.children).map(element => ({
                 suit: element.dataset.suit,
@@ -268,16 +342,17 @@
             }));
         };
 
-        // function to render an individual hand of cards
-        const renderHand = (cards, containerId) => {
+        // A function to render an individual hand of cards
+        const renderHands = (cards, containerId) => {
             const container = document.getElementById(containerId);
+            container.innerHTML = '';
             cards.forEach(card => {
                 const cardDiv = createCardElement(card);
                 container.appendChild(cardDiv);
             });
         };
 
-        // function to create a card's HTML element
+        // A function to create a card's HTML element
         const createCardElement = (card) => {
             const cardDiv = document.createElement('div');
             const isRedSuit = card.suit === 'Hearts' || card.suit === 'Diamonds';
@@ -295,7 +370,7 @@
             return cardDiv;
         };
 
-        // function to convert rank numbers to symbols (A, K, Q, J)
+        // A function to convert rank numbers to symbols (A, K, Q, J)
         const getRankSymbol = (rank) => {
             if (rank > 10) {
                 switch (rank) {
@@ -307,8 +382,8 @@
             }
             return rank;
         };
-
-        // function to convert suit names to symbols
+        
+        // A function to convert suit names to symbols
         const getSuitSymbol = (suit) => {
             switch (suit) {
                 case 'Hearts': return '♥';
