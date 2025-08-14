@@ -188,8 +188,20 @@
             });
 
             document.getElementById('status-message').textContent = 'Game state loaded! Select your cards and set your hands.';
-        };
+            
+            // Add click handlers for the drop zones
+            document.querySelectorAll('.hand-container').forEach(container => {
+                container.addEventListener('click', () => {
+                    moveSelectedCardsToContainer(container.id);
+                });
+            });
 
+            // Add click handler for the set hands button
+            document.getElementById('set-hands-btn').addEventListener('click', () => {
+                setHumanHands();
+            });
+        };
+        
         // Renders the human player's hand with click handlers
         const renderHumanHand = (cards) => {
             const container = document.getElementById('human-hand-container');
@@ -206,12 +218,64 @@
         const toggleCardSelection = (card, element) => {
             const index = selectedCards.findIndex(c => c.suit === card.suit && c.rank === card.rank);
             if (index > -1) {
+                // Deselect card
                 selectedCards.splice(index, 1);
                 element.classList.remove('selected');
             } else {
+                // Select card
                 selectedCards.push(card);
                 element.classList.add('selected');
             }
+        };
+
+        const moveSelectedCardsToContainer = (containerId) => {
+            const container = document.getElementById(containerId);
+            selectedCards.forEach(card => {
+                // Find the card element in the original hand container
+                const cardElement = document.querySelector(`#human-hand-container .card[data-rank="${card.rank}"][data-suit="${card.suit}"]`);
+                if (cardElement) {
+                    container.appendChild(cardElement);
+                }
+            });
+            // Clear selected cards
+            selectedCards = [];
+            document.querySelectorAll('.card.selected').forEach(card => {
+                card.classList.remove('selected');
+            });
+        };
+        
+        const setHumanHands = () => {
+            const frontHand = document.getElementById('human-front-hand-drop');
+            const middleHand = document.getElementById('human-middle-hand-drop');
+            const backHand = document.getElementById('human-back-hand-drop');
+
+            const frontCount = frontHand.children.length;
+            const middleCount = middleHand.children.length;
+            const backCount = backHand.children.length;
+
+            if (frontCount !== 3 || middleCount !== 5 || backCount !== 5) {
+                alert('Please ensure your hands have 3, 5, and 5 cards respectively.');
+                return;
+            }
+
+            const frontCards = getCardsFromContainer(frontHand);
+            const middleCards = getCardsFromContainer(middleHand);
+            const backCards = getCardsFromContainer(backHand);
+            
+            // At this point, we would send the hands to the backend to check for a foul.
+            // For now, we'll just log the hands to the console.
+            console.log('Human Hands Submitted:');
+            console.log('Front Hand:', frontCards);
+            console.log('Middle Hand:', middleCards);
+            console.log('Back Hand:', backCards);
+            alert('Hands set successfully! (Check the console)');
+        };
+
+        const getCardsFromContainer = (container) => {
+            return Array.from(container.children).map(element => ({
+                suit: element.dataset.suit,
+                rank: parseInt(element.dataset.rank)
+            }));
         };
 
         // Helper function to render an individual hand of cards
@@ -236,6 +300,9 @@
                 <div class="suit">${suitSymbol}</div>
                 <div class="footer">${rankSymbol} ${suitSymbol}</div>
             `;
+            // Add data attributes to help identify the card
+            cardDiv.dataset.suit = card.suit;
+            cardDiv.dataset.rank = card.rank;
             return cardDiv;
         };
 
