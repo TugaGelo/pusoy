@@ -84,7 +84,6 @@
         <div class="mb-8 p-6 bg-gray-800 rounded-lg shadow-lg">
             <h2 class="text-2xl font-semibold mb-4 text-center">Your Hand</h2>
             <div id="human-hand-container" class="flex flex-wrap justify-center mb-4">
-                <!-- Human player's cards will be rendered here -->
             </div>
 
             <!-- Hand setting areas -->
@@ -114,7 +113,6 @@
         <div class="mb-8 p-6 bg-gray-800 rounded-lg shadow-lg">
             <h2 class="text-2xl font-semibold mb-4 text-center">AI Players</h2>
             <div id="ai-players-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- AI player hands will be rendered here -->
             </div>
         </div>
     </div>
@@ -133,10 +131,8 @@
                 const response = await fetch('http://localhost:8080/game');
                 const game = await response.json();
                 
-                // Store the human player for later use
                 humanPlayer = game.players.find(p => p.name === "Human");
 
-                // Render the game state on the page
                 renderGame(game);
             } catch (error) {
                 console.error('Error fetching game data:', error);
@@ -147,7 +143,7 @@
         // Function to render the game state on the page
         const renderGame = (game) => {
             const playersContainer = document.getElementById('ai-players-container');
-            playersContainer.innerHTML = ''; // Clear previous content
+            playersContainer.innerHTML = '';
 
             game.players.forEach(player => {
                 if (player.name === "Human") {
@@ -218,11 +214,9 @@
         const toggleCardSelection = (card, element) => {
             const index = selectedCards.findIndex(c => c.suit === card.suit && c.rank === card.rank);
             if (index > -1) {
-                // Deselect card
                 selectedCards.splice(index, 1);
                 element.classList.remove('selected');
             } else {
-                // Select card
                 selectedCards.push(card);
                 element.classList.add('selected');
             }
@@ -231,13 +225,11 @@
         const moveSelectedCardsToContainer = (containerId) => {
             const container = document.getElementById(containerId);
             selectedCards.forEach(card => {
-                // Find the card element in the original hand container
                 const cardElement = document.querySelector(`#human-hand-container .card[data-rank="${card.rank}"][data-suit="${card.suit}"]`);
                 if (cardElement) {
                     container.appendChild(cardElement);
                 }
             });
-            // Clear selected cards
             selectedCards = [];
             document.querySelectorAll('.card.selected').forEach(card => {
                 card.classList.remove('selected');
@@ -262,8 +254,6 @@
             const middleCards = getCardsFromContainer(middleHand);
             const backCards = getCardsFromContainer(backHand);
             
-            // At this point, we would send the hands to the backend to check for a foul.
-            // For now, we'll just log the hands to the console.
             console.log('Human Hands Submitted:');
             console.log('Front Hand:', frontCards);
             console.log('Middle Hand:', middleCards);
@@ -278,7 +268,7 @@
             }));
         };
 
-        // Helper function to render an individual hand of cards
+        // function to render an individual hand of cards
         const renderHand = (cards, containerId) => {
             const container = document.getElementById(containerId);
             cards.forEach(card => {
@@ -287,7 +277,7 @@
             });
         };
 
-        // Helper function to create a card's HTML element
+        // function to create a card's HTML element
         const createCardElement = (card) => {
             const cardDiv = document.createElement('div');
             const isRedSuit = card.suit === 'Hearts' || card.suit === 'Diamonds';
@@ -300,13 +290,12 @@
                 <div class="suit">${suitSymbol}</div>
                 <div class="footer">${rankSymbol} ${suitSymbol}</div>
             `;
-            // Add data attributes to help identify the card
             cardDiv.dataset.suit = card.suit;
             cardDiv.dataset.rank = card.rank;
             return cardDiv;
         };
 
-        // Helper function to convert rank numbers to symbols (A, K, Q, J)
+        // function to convert rank numbers to symbols (A, K, Q, J)
         const getRankSymbol = (rank) => {
             if (rank > 10) {
                 switch (rank) {
@@ -319,7 +308,7 @@
             return rank;
         };
 
-        // Helper function to convert suit names to symbols
+        // function to convert suit names to symbols
         const getSuitSymbol = (suit) => {
             switch (suit) {
                 case 'Hearts': return '♥';

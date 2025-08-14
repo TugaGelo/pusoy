@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-// The Hand class represents a collection of Card objects.
 public class Hand {
 
     private List<Card> cards;
@@ -26,13 +25,11 @@ public class Hand {
     }
     
     // A new method to sort the cards in the hand by rank.
-    // This is useful for both displaying cards and for poker hand evaluation.
     public void sortCardsByRank() {
         this.cards.sort(Comparator.comparingInt(Card::getRank));
     }
 
-    // This new helper method counts the number of times each card rank appears in the hand.
-    // This is a crucial step for evaluating pairs, three-of-a-kind, and other combinations.
+    // A method that counts the number of times each card rank appears in the hand.
     public Map<Integer, Long> getRankCounts() {
         return this.cards.stream()
                 .collect(Collectors.groupingBy(Card::getRank, Collectors.counting()));

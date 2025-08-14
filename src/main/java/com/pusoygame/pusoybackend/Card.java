@@ -1,11 +1,8 @@
 package com.pusoygame.pusoybackend;
-
-// We'll use this class to represent a single playing card.
-// It will have two properties: a suit and a rank.
 public class Card {
 
-    private String suit; // e.g., "Hearts", "Diamonds", "Clubs", "Spades"
-    private int rank; // 2-14 (11=Jack, 12=Queen, 13=King, 14=Ace)
+    private String suit;
+    private int rank;
 
     // Constructor to create a new Card object
     public Card(String suit, int rank) {
@@ -13,7 +10,6 @@ public class Card {
         this.rank = rank;
     }
 
-    // Getter methods to access the properties of the card
     public String getSuit() {
         return suit;
     }
