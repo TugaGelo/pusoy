@@ -140,27 +140,27 @@ public class Game {
 
                 int backComparison = HandEvaluator.compareHands(humanPlayer.getBackHand(), aiPlayer.getBackHand());
                 if (backComparison > 0) {
-                    System.out.println("- " + humanPlayer.getName() + "'s back hand wins! (Hand: " + humanPlayer.getBackHand().getCards() + ")");
+                    System.out.println("- " + humanPlayer.getName() + "'s back hand wins!");
                 } else if (backComparison < 0) {
-                    System.out.println("- " + aiPlayer.getName() + "'s back hand wins! (Hand: " + aiPlayer.getBackHand().getCards() + ")");
+                    System.out.println("- " + aiPlayer.getName() + "'s back hand wins!");
                 } else {
                     System.out.println("- Back hands are a tie!");
                 }
 
                 int middleComparison = HandEvaluator.compareHands(humanPlayer.getMiddleHand(), aiPlayer.getMiddleHand());
                 if (middleComparison > 0) {
-                    System.out.println("- " + humanPlayer.getName() + "'s middle hand wins! (Hand: " + humanPlayer.getMiddleHand().getCards() + ")");
+                    System.out.println("- " + humanPlayer.getName() + "'s middle hand wins!");
                 } else if (middleComparison < 0) {
-                    System.out.println("- " + aiPlayer.getName() + "'s middle hand wins! (Hand: " + aiPlayer.getMiddleHand().getCards() + ")");
+                    System.out.println("- " + aiPlayer.getName() + "'s middle hand wins!");
                 } else {
                     System.out.println("- Middle hands are a tie!");
                 }
 
                 int frontComparison = HandEvaluator.compareHands(humanPlayer.getFrontHand(), aiPlayer.getFrontHand());
                 if (frontComparison > 0) {
-                    System.out.println("- " + humanPlayer.getName() + "'s front hand wins! (Hand: " + humanPlayer.getFrontHand().getCards() + ")");
+                    System.out.println("- " + humanPlayer.getName() + "'s front hand wins!");
                 } else if (frontComparison < 0) {
-                    System.out.println("- " + aiPlayer.getName() + "'s front hand wins! (Hand: " + aiPlayer.getFrontHand().getCards() + ")");
+                    System.out.println("- " + aiPlayer.getName() + "'s front hand wins!");
                 } else {
                     System.out.println("- Front hands are a tie!");
                 }
