@@ -128,29 +128,68 @@ public class HandEvaluator {
 
     // A method that compares two hands of the same rank to break a tie.
     private static int compareHandsWithSameRank(Hand hand1, Hand hand2) {
-        List<Card> cards1 = hand1.getCards();
-        List<Card> cards2 = hand2.getCards();
-        
-        for (int i = cards1.size() - 1; i >= 0; i--) {
-            int cardComparison = Integer.compare(cards1.get(i).getRank(), cards2.get(i).getRank());
-            if (cardComparison != 0) {
-                return cardComparison;
+        HandRank rank = evaluateFiveCardHand(hand1);
+
+        Map<Integer, Long> counts1 = hand1.getRankCounts();
+        Map<Integer, Long> counts2 = hand2.getRankCounts();
+
+        if (rank == HandRank.FULL_HOUSE) {
+            int triple1 = counts1.entrySet().stream()
+                .filter(e -> e.getValue() == 3)
+                .map(Map.Entry::getKey)
+                .findFirst().orElse(0);
+            int triple2 = counts2.entrySet().stream()
+                .filter(e -> e.getValue() == 3)
+                .map(Map.Entry::getKey)
+                .findFirst().orElse(0);
+
+            if (triple1 != triple2) {
+                return Integer.compare(triple1, triple2);
             }
+
+            int pair1 = counts1.entrySet().stream()
+                .filter(e -> e.getValue() == 2)
+                .map(Map.Entry::getKey)
+                .findFirst().orElse(0);
+            int pair2 = counts2.entrySet().stream()
+                .filter(e -> e.getValue() == 2)
+                .map(Map.Entry::getKey)
+                .findFirst().orElse(0);
+
+            return Integer.compare(pair1, pair2);
         }
 
+        // fallback for other hand types
+        List<Card> cards1 = hand1.getCards();
+        List<Card> cards2 = hand2.getCards();
+        for (int i = cards1.size() - 1; i >= 0; i--) {
+            int cmp = Integer.compare(cards1.get(i).getRank(), cards2.get(i).getRank());
+            if (cmp != 0) return cmp;
+        }
         return 0;
     }
 
     // A method that checks if a 5-card hand is a straight.
     private static boolean isStraight(Hand hand) {
-        List<Card> sortedCards = hand.getCards();
-        for (int i = 0; i < sortedCards.size() - 1; i++) {
-            if (sortedCards.get(i).getRank() + 1 != sortedCards.get(i + 1).getRank()) {
+        List<Integer> ranks = hand.getCards().stream()
+            .map(Card::getRank)
+            .distinct()
+            .sorted()
+            .collect(Collectors.toList());
+
+        // Special case: Ace-low straight (A=14, but treat as 1)
+        if (ranks.equals(List.of(2, 3, 4, 5, 14))) {
+            return true;
+        }
+
+        for (int i = 0; i < ranks.size() - 1; i++) {
+            if (ranks.get(i) + 1 != ranks.get(i + 1)) {
                 return false;
             }
         }
         return true;
     }
+
 
     // A method that checks if a 5-card hand is a flush.
     private static boolean isFlush(Hand hand) {
