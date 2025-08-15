@@ -6,15 +6,18 @@ public class Card {
 
     // Constructor to create a new Card object
     public Card(String suit, int rank) {
+        // System.out.println("Card constructor called. Initializing with suit: " + suit + ", rank: " + rank);
         this.suit = suit;
         this.rank = rank;
     }
 
     public String getSuit() {
+        // System.out.println("getSuit() called. Returning suit: " + suit);
         return suit;
     }
 
     public int getRank() {
+        // System.out.println("getRank() called. Returning rank: " + rank);
         return rank;
     }
 

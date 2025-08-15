@@ -14,6 +14,7 @@ public class Game {
 
     // Constructor to set up a new game with a list of players.
     public Game(List<Player> players) {
+        // System.out.println("Game constructor called. Creating a new game with " + players.size() + " players.");
         this.players = players;
         this.deck = new ArrayList<>();
         initializeDeck();
@@ -24,6 +25,7 @@ public class Game {
 
     // Creates a standard 52-card deck.
     private void initializeDeck() {
+        // System.out.println("Initializing a new 52-card deck...");
         String[] suits = {"Hearts", "Diamonds", "Clubs", "Spades"};
         for (String suit : suits) {
             for (int rank = 2; rank <= 10; rank++) {
@@ -34,50 +36,68 @@ public class Game {
             deck.add(new Card(suit, 13));
             deck.add(new Card(suit, 14));
         }
+        // System.out.println("Deck initialized with " + deck.size() + " cards: " + deck);
     }
 
     private void shuffleDeck() {
+        // System.out.println("Shuffling the deck.");
         Collections.shuffle(deck);
+        // System.out.println("Deck after shuffling: " + deck);
     }
 
     // Deals 13 cards to each player.
     private void dealCards() {
+        // System.out.println("Dealing 13 cards to each of the " + players.size() + " players.");
         for (Player player : players) {
             List<Card> playerCardList = new ArrayList<>();
             for (int i = 0; i < 13; i++) {
                 playerCardList.add(deck.remove(0));
             }
             player.setHand(new Hand(playerCardList));
+            // System.out.println("Player " + player.getName() + " was dealt " + player.getHand().getCards().size() + " cards: " + player.getHand().getCards());
         }
     }
     
     // A method to sort the cards in a player's hand.
     public void sortPlayerHand(Player player) {
         if (player != null && player.getHand() != null) {
+            // System.out.println("Sorting " + player.getName() + "'s hand by rank. Before sorting: " + player.getHand().getCards());
             Collections.sort(player.getHand().getCards(), Comparator.comparingInt(Card::getRank));
+            // System.out.println("Sorting " + player.getName() + "'s hand by rank. After sorting: " + player.getHand().getCards());
         }
     }
 
     // A method checks if a player's three hands are in the correct order to avoid a foul.
     public boolean checkFoul(Hand front, Hand middle, Hand back) {
+        // System.out.println("Checking for a foul. Comparing hands...");
         boolean backIsStrongerThanMiddle = HandEvaluator.compareHands(back, middle) > 0;
         boolean middleIsStrongerThanFront = HandEvaluator.compareHands(middle, front) > 0;
+        
+        // if (!(backIsStrongerThanMiddle && middleIsStrongerThanFront)) {
+        //     System.out.println("Foul detected! Back hand is not stronger than middle hand, or middle hand is not stronger than front hand.");
+        // }
 
         return !(backIsStrongerThanMiddle && middleIsStrongerThanFront);
     }
 
     // A method to set a player's three hands and check for a foul.
     public boolean setPlayerHands(Player player, Hand front, Hand middle, Hand back) {
+        // System.out.println("Attempting to set hands for " + player.getName() + ".");
         if (checkFoul(front, middle, back)) {
             return false;
         }
         
+        // System.out.println("Hands are valid. Setting hands for " + player.getName() + ".");
+        // System.out.println("Front Hand: " + front.getCards());
+        // System.out.println("Middle Hand: " + middle.getCards());
+        // System.out.println("Back Hand: " + back.getCards());
         player.setHands(front, middle, back);
         return true;
     }
 
     // A method to set the hands for the AI players.
     public void setAIHands(Player player) {
+        // System.out.println("Setting AI hands for " + player.getName() + ".");
         player.getHand().sortCardsByRank();
         List<Card> cards = new ArrayList<>(player.getHand().getCards());
 
@@ -105,48 +125,44 @@ public class Game {
         player.setHands(new Hand(cards.subList(0, 3)), new Hand(cards.subList(3, 8)), new Hand(cards.subList(8, 13)));
         System.out.println(player.getName() + " fouled! They will lose this round but their hands are now set with the default fallback.");
     }
-
-    // A method to compare all players' hands and determine the winner.
+    
+    // A method to compare the human player's hands to each AI's hands individually.
     public void compareAllPlayerHands() {
         System.out.println("\n--- Starting the Showdown ---");
         
-        for (int i = 0; i < players.size(); i++) {
-            for (int j = i + 1; j < players.size(); j++) {
-                Player player1 = players.get(i);
-                Player player2 = players.get(j);
+        Player humanPlayer = players.get(0);
 
-                if (player1.getBackHand() != null && player2.getBackHand() != null) {
-                    System.out.println("Comparing hands for " + player1.getName() + " vs " + player2.getName() + ":");
+        for (int i = 1; i < players.size(); i++) {
+            Player aiPlayer = players.get(i);
+            
+            if (humanPlayer.getBackHand() != null && aiPlayer.getBackHand() != null) {
+                System.out.println("Comparing hands for " + humanPlayer.getName() + " vs " + aiPlayer.getName() + ":");
 
-                    // Compare Back Hands
-                    int backComparison = HandEvaluator.compareHands(player1.getBackHand(), player2.getBackHand());
-                    if (backComparison > 0) {
-                        System.out.println("- " + player1.getName() + "'s back hand wins!");
-                    } else if (backComparison < 0) {
-                        System.out.println("- " + player2.getName() + "'s back hand wins!");
-                    } else {
-                        System.out.println("- Back hands are a tie!");
-                    }
+                int backComparison = HandEvaluator.compareHands(humanPlayer.getBackHand(), aiPlayer.getBackHand());
+                if (backComparison > 0) {
+                    System.out.println("- " + humanPlayer.getName() + "'s back hand wins! (Hand: " + humanPlayer.getBackHand().getCards() + ")");
+                } else if (backComparison < 0) {
+                    System.out.println("- " + aiPlayer.getName() + "'s back hand wins! (Hand: " + aiPlayer.getBackHand().getCards() + ")");
+                } else {
+                    System.out.println("- Back hands are a tie!");
+                }
 
-                    // Compare Middle Hands
-                    int middleComparison = HandEvaluator.compareHands(player1.getMiddleHand(), player2.getMiddleHand());
-                    if (middleComparison > 0) {
-                        System.out.println("- " + player1.getName() + "'s middle hand wins!");
-                    } else if (middleComparison < 0) {
-                        System.out.println("- " + player2.getName() + "'s middle hand wins!");
-                    } else {
-                        System.out.println("- Middle hands are a tie!");
-                    }
+                int middleComparison = HandEvaluator.compareHands(humanPlayer.getMiddleHand(), aiPlayer.getMiddleHand());
+                if (middleComparison > 0) {
+                    System.out.println("- " + humanPlayer.getName() + "'s middle hand wins! (Hand: " + humanPlayer.getMiddleHand().getCards() + ")");
+                } else if (middleComparison < 0) {
+                    System.out.println("- " + aiPlayer.getName() + "'s middle hand wins! (Hand: " + aiPlayer.getMiddleHand().getCards() + ")");
+                } else {
+                    System.out.println("- Middle hands are a tie!");
+                }
 
-                    // Compare Front Hands
-                    int frontComparison = HandEvaluator.compareHands(player1.getFrontHand(), player2.getFrontHand());
-                    if (frontComparison > 0) {
-                        System.out.println("- " + player1.getName() + "'s front hand wins!");
-                    } else if (frontComparison < 0) {
-                        System.out.println("- " + player2.getName() + "'s front hand wins!");
-                    } else {
-                        System.out.println("- Front hands are a tie!");
-                    }
+                int frontComparison = HandEvaluator.compareHands(humanPlayer.getFrontHand(), aiPlayer.getFrontHand());
+                if (frontComparison > 0) {
+                    System.out.println("- " + humanPlayer.getName() + "'s front hand wins! (Hand: " + humanPlayer.getFrontHand().getCards() + ")");
+                } else if (frontComparison < 0) {
+                    System.out.println("- " + aiPlayer.getName() + "'s front hand wins! (Hand: " + aiPlayer.getFrontHand().getCards() + ")");
+                } else {
+                    System.out.println("- Front hands are a tie!");
                 }
             }
         }
