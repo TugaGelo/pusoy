@@ -7,11 +7,13 @@ import java.util.List;
 
 /**
  * The Game class manages the game state, including the deck and the players.
- * 
+ *
  * AI logic (setAIHands):
  *  - Enumerates all 5-card combinations from 13 cards.
  *  - Chooses two non-overlapping 5-card hands such that Back > Middle (strict).
  *  - Leftover 3 cards become Front.
+ *  - Uses AI preference: when comparing FULL_HOUSE hands with the same trips,
+ *    prefer the LOWER pair (e.g., AAA33 over AAAQQ).
  *  - Falls back to safe split if needed.
  */
 public class Game {
@@ -83,17 +85,14 @@ public class Game {
     }
 
     /**
-     * >>> NEW AI <<<
-     *
      * Build two 5-card hands (Back and Middle) from the AI's 13-card hand so that:
      *   Back > Middle (strict), and the leftover 3-card Front is maximized.
-     * This uses full poker recognition via your HandEvaluator.
+     * Uses AI preference: for FULL_HOUSE with same trips, prefer the LOWEST pair.
      */
     public void setAIHands(Player player) {
         // Defensive: ensure we have 13 cards.
         if (player == null || player.getHand() == null || player.getHand().getCards().size() != 13) {
             System.out.println("AI setup failed: invalid hand size.");
-            // Fallback: do nothing.
             return;
         }
 
@@ -207,12 +206,14 @@ public class Game {
     }
 
     /**
-     * Pick the best partition (Back, Middle, Front) using full poker evaluation.
+     * Pick the best partition (Back, Middle, Front) using poker evaluation and AI preference.
      * - Enumerate all 5-card combos (C(13,5) = 1287).
      * - For each, enumerate all 5-card combos from the remaining 8 (C(8,5) = 56).
-     * - Order the two 5-card hands so Back > Middle (strict). Skip equal (would foul).
+     * - Order the two 5-card hands so Back > Middle (strict) by standard poker strength.
      * - Leftover 3 are Front.
-     * - Choose the candidate with lexicographic priority: Back (strongest), then Middle, then Front.
+     * - Choose the candidate using AI comparator:
+     *      Prefer stronger Back, but if Back is FULL_HOUSE with same trips, prefer LOWER pair.
+     *      Then do the same for Middle. Front is compared normally (3-card).
      */
     private Partition pickBestPartition(List<Card> cards13) {
         List<Partition> candidates = new ArrayList<>();
@@ -228,7 +229,7 @@ public class Game {
             List<List<Card>> secondFives = combinations5(rem8);
 
             for (List<Card> fiveB : secondFives) {
-                // Determine which should be Back and which should be Middle
+                // Determine which should be Back and which should be Middle (strict by standard poker)
                 Hand hA = new Hand(new ArrayList<>(fiveA));
                 Hand hB = new Hand(new ArrayList<>(fiveB));
                 hA.sortCardsByRank();
@@ -246,7 +247,6 @@ public class Game {
                 // Front = leftover 3 cards after removing both fives
                 List<Card> rem3 = subtract(rem8, middle);
                 if (rem3.size() != 3) {
-                    // Defensive: something went wrong if we don't have exactly 3 leftover
                     continue;
                 }
 
@@ -258,21 +258,72 @@ public class Game {
             return null;
         }
 
-        // Choose best candidate by comparing Back first, then Middle, then Front.
+        // Sort with AI preference:
+        // - Descending by AI-preferred Back
+        // - Then descending by AI-preferred Middle
+        // - Then descending by normal Front strength
         candidates.sort((p1, p2) -> {
-            int backCmp = HandEvaluator.compareHands(new Hand(p1.back), new Hand(p2.back));
-            if (backCmp != 0) return -backCmp; // stronger back first
+            int backCmpAI = aiCompareHandsForSorting(new Hand(p1.back), new Hand(p2.back));
+            if (backCmpAI != 0) return -backCmpAI; // prefer larger AI score first
 
-            int midCmp = HandEvaluator.compareHands(new Hand(p1.middle), new Hand(p2.middle));
-            if (midCmp != 0) return -midCmp; // stronger middle next
+            int midCmpAI = aiCompareHandsForSorting(new Hand(p1.middle), new Hand(p2.middle));
+            if (midCmpAI != 0) return -midCmpAI;
 
-            // For 3-card front comparison, HandEvaluator.compareHands handles 3v3 fine.
             int frontCmp = HandEvaluator.compareHands(new Hand(p1.front), new Hand(p2.front));
-            return -frontCmp; // stronger front last
+            return -frontCmp;
         });
 
         // Return the top partition
         return candidates.get(0);
+    }
+
+    /**
+     * AI comparator for sorting 5-card hands when choosing candidates.
+     * Keeps normal poker strength EXCEPT:
+     *  - If BOTH hands are FULL_HOUSE and have the SAME trips rank,
+     *    it prefers the LOWER pair rank (e.g., AAA33 is preferred over AAAQQ).
+     *
+     * Returns >0 if h1 is preferred over h2, <0 if h2 is preferred, 0 if equal.
+     */
+    private int aiCompareHandsForSorting(Hand h1, Hand h2) {
+        if (h1.getCards().size() == 5 && h2.getCards().size() == 5) {
+            HandEvaluator.HandRank r1 = HandEvaluator.evaluateFiveCardHand(h1);
+            HandEvaluator.HandRank r2 = HandEvaluator.evaluateFiveCardHand(h2);
+
+            if (r1 == HandEvaluator.HandRank.FULL_HOUSE && r2 == HandEvaluator.HandRank.FULL_HOUSE) {
+                int t1 = getTripsRankIfFullHouse(h1);
+                int t2 = getTripsRankIfFullHouse(h2);
+                if (t1 != t2) {
+                    // Higher trips is still preferred
+                    return Integer.compare(t1, t2);
+                }
+                // Same trips → prefer LOWER pair
+                int p1 = getPairRankIfFullHouse(h1, /*lowest*/ true);
+                int p2 = getPairRankIfFullHouse(h2, /*lowest*/ true);
+                // If p1 < p2, we want h1 preferred → return positive
+                return Integer.compare(p2, p1);
+            }
+        }
+        // Default to standard poker strength
+        return HandEvaluator.compareHands(h1, h2);
+    }
+
+    private int getTripsRankIfFullHouse(Hand h) {
+        return h.getRankCounts().entrySet().stream()
+                .filter(e -> e.getValue() == 3L)
+                .mapToInt(e -> e.getKey())
+                .findFirst()
+                .orElse(-1);
+    }
+
+    private int getPairRankIfFullHouse(Hand h, boolean lowest) {
+        return h.getRankCounts().entrySet().stream()
+                .filter(e -> e.getValue() == 2L)
+                .mapToInt(e -> e.getKey())
+                .boxed()
+                .sorted(lowest ? Integer::compareTo : Comparator.reverseOrder())
+                .findFirst()
+                .orElse(-1);
     }
 
     /**
