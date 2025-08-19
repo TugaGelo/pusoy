@@ -1,18 +1,10 @@
 package com.pusoygame.pusoybackend;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
-// The HandEvaluator class is responsible for determining the rank of a given poker hand.
-// This is a crucial component for both game validation and AI logic.
 public class HandEvaluator {
 
-    // An enum to represent the possible poker hand ranks.
     public enum HandRank {
         HIGH_CARD,
         PAIR,
@@ -25,19 +17,14 @@ public class HandEvaluator {
         STRAIGHT_FLUSH,
         ROYAL_FLUSH
     }
-    
-    // This new method compares two hands and returns which one is stronger.
-    // It returns a positive number if hand1 is stronger, a negative number if hand2 is stronger,
-    // and 0 if the hands are of equal strength.
+
     public static int compareHands(Hand hand1, Hand hand2) {
-        // Handle hands of different sizes first
         if (hand1.getCards().size() > hand2.getCards().size()) {
             return 1;
         } else if (hand1.getCards().size() < hand2.getCards().size()) {
             return -1;
         }
 
-        // If the hands are of the same size, we proceed with the existing logic.
         if (hand1.getCards().size() == 5) {
             return compareFiveCardHands(hand1, hand2);
         } else if (hand1.getCards().size() == 3) {
@@ -47,7 +34,6 @@ public class HandEvaluator {
         return 0;
     }
 
-    // A dedicated method for comparing two 5-card hands.
     private static int compareFiveCardHands(Hand hand1, Hand hand2) {
         HandRank rank1 = evaluateFiveCardHand(hand1);
         HandRank rank2 = evaluateFiveCardHand(hand2);
@@ -60,7 +46,6 @@ public class HandEvaluator {
         return compareFiveCardHandsWithSameRank(hand1, hand2);
     }
 
-    // A dedicated method for comparing two 3-card hands.
     private static int compareThreeCardHands(Hand hand1, Hand hand2) {
         HandRank rank1 = evaluateThreeCardHand(hand1);
         HandRank rank2 = evaluateThreeCardHand(hand2);
@@ -73,7 +58,6 @@ public class HandEvaluator {
         return compareThreeCardHandsWithSameRank(hand1, hand2);
     }
 
-    // This method will be used to determine the rank of a 5-card hand.
     public static HandRank evaluateFiveCardHand(Hand hand) {
         hand.sortCardsByRank();
         Map<Integer, Long> rankCounts = hand.getRankCounts();
@@ -120,7 +104,6 @@ public class HandEvaluator {
         return HandRank.HIGH_CARD;
     }
 
-    // This method will be used to determine the rank of a 3-card hand.
     public static HandRank evaluateThreeCardHand(Hand hand) {
         Map<Integer, Long> rankCounts = hand.getRankCounts();
         
@@ -135,13 +118,11 @@ public class HandEvaluator {
         return HandRank.HIGH_CARD;
     }
 
-    // This new method compares two hands of the same rank to break a tie.
     private static int compareFiveCardHandsWithSameRank(Hand hand1, Hand hand2) {
         HandRank rank = evaluateFiveCardHand(hand1);
         Map<Integer, Long> counts1 = hand1.getRankCounts();
         Map<Integer, Long> counts2 = hand2.getRankCounts();
 
-        // For hands with multiples, compare the ranks of the multiples first.
         switch (rank) {
             case PAIR:
             case TWO_PAIR:
@@ -157,9 +138,14 @@ public class HandEvaluator {
                     }
                 }
                 break;
+
+            case STRAIGHT:
+            case STRAIGHT_FLUSH:
+                int topCard1 = getStraightTopCard(hand1);
+                int topCard2 = getStraightTopCard(hand2);
+                return Integer.compare(topCard1, topCard2);
+
             default:
-                // For all other hands (e.g., High Card, Straight, Flush), a simple
-                // card-by-card comparison from highest to lowest works.
                 List<Card> cards1 = hand1.getCards();
                 List<Card> cards2 = hand2.getCards();
                 for (int i = cards1.size() - 1; i >= 0; i--) {
@@ -174,7 +160,6 @@ public class HandEvaluator {
         return 0;
     }
 
-    // This new method compares two 3-card hands of the same rank to break a tie.
     private static int compareThreeCardHandsWithSameRank(Hand hand1, Hand hand2) {
         HandRank rank = evaluateThreeCardHand(hand1);
         Map<Integer, Long> counts1 = hand1.getRankCounts();
@@ -207,21 +192,15 @@ public class HandEvaluator {
         return 0;
     }
     
-    // A new helper method to get a ranked list of card ranks from a map of counts.
     private static List<Integer> getRankedRanks(Map<Integer, Long> counts) {
         List<Integer> result = new ArrayList<>();
-        // Add ranks with 4 cards
         counts.entrySet().stream().filter(e -> e.getValue() == 4).map(Map.Entry::getKey).sorted(Comparator.reverseOrder()).forEach(result::add);
-        // Add ranks with 3 cards
         counts.entrySet().stream().filter(e -> e.getValue() == 3).map(Map.Entry::getKey).sorted(Comparator.reverseOrder()).forEach(result::add);
-        // Add ranks with 2 cards
         counts.entrySet().stream().filter(e -> e.getValue() == 2).map(Map.Entry::getKey).sorted(Comparator.reverseOrder()).forEach(result::add);
-        // Add ranks with 1 card (kickers)
         counts.entrySet().stream().filter(e -> e.getValue() == 1).map(Map.Entry::getKey).sorted(Comparator.reverseOrder()).forEach(result::add);
         return result;
     }
 
-    // This method checks if a 5-card hand is a straight.
     private static boolean isStraight(Hand hand) {
         List<Integer> ranks = hand.getCards().stream()
                 .map(Card::getRank)
@@ -242,7 +221,21 @@ public class HandEvaluator {
         return true;
     }
 
-    // This method checks if a 5-card hand is a flush.
+    private static int getStraightTopCard(Hand hand) {
+        List<Integer> ranks = hand.getCards().stream()
+                .map(Card::getRank)
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+
+        // Special case: A-2-3-4-5 should count as 5 high (weakest straight)
+        if (ranks.equals(List.of(2, 3, 4, 5, 14))) {
+            return 5;
+        }
+
+        return ranks.get(ranks.size() - 1); // highest card normally
+    }
+
     private static boolean isFlush(Hand hand) {
         Set<String> suits = hand.getCards().stream()
                 .map(Card::getSuit)
