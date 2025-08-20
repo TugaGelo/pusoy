@@ -17,6 +17,8 @@ import java.util.List;
  *  - NEW: If the chosen Middle is PAIR / TWO_PAIR / THREE_OF_A_KIND,
  *         normalize it to use the LOWEST possible core + LOWEST fillers,
  *         and reserve the TOP 3 remaining cards for the Front.
+ *  - NEW: AI preference for FOUR_OF_A_KIND — if both hands are quads of the SAME rank,
+ *         prefer the LOWER kicker (to save higher singletons for Front).
  *  - Falls back to safe split if needed.
  */
 public class Game {
@@ -410,7 +412,9 @@ public class Game {
      * AI comparator for sorting 5-card hands when choosing candidates.
      * Keeps normal poker strength EXCEPT:
      *  - If BOTH hands are FULL_HOUSE and have the SAME trips rank,
-     *    it prefers the LOWER pair rank (e.g., AAA33 is preferred over AAAQQ).
+     *    prefer the LOWER pair rank (e.g., AAA33 is preferred over AAAQQ).
+     *  - If BOTH hands are FOUR_OF_A_KIND and have the SAME quads rank,
+     *    prefer the LOWER kicker rank.
      *
      * Returns >0 if h1 is preferred over h2, <0 if h2 is preferred, 0 if equal.
      */
@@ -419,6 +423,22 @@ public class Game {
             HandEvaluator.HandRank r1 = HandEvaluator.evaluateFiveCardHand(h1);
             HandEvaluator.HandRank r2 = HandEvaluator.evaluateFiveCardHand(h2);
 
+            // NEW: Four-of-a-kind kicker preference
+            if (r1 == HandEvaluator.HandRank.FOUR_OF_A_KIND && r2 == HandEvaluator.HandRank.FOUR_OF_A_KIND) {
+                int q1 = getQuadsRankIfFourKind(h1);
+                int q2 = getQuadsRankIfFourKind(h2);
+                if (q1 != q2) {
+                    // Higher quads is still preferred
+                    return Integer.compare(q1, q2);
+                }
+                // Same quads → prefer LOWER kicker (AI preference)
+                int k1 = getKickerRankIfFourKind(h1);
+                int k2 = getKickerRankIfFourKind(h2);
+                // If k1 < k2, we want h1 preferred → return positive
+                return Integer.compare(k2, k1);
+            }
+
+            // Existing Full House preference (prefer lower pair if trips equal)
             if (r1 == HandEvaluator.HandRank.FULL_HOUSE && r2 == HandEvaluator.HandRank.FULL_HOUSE) {
                 int t1 = getTripsRankIfFullHouse(h1);
                 int t2 = getTripsRankIfFullHouse(h2);
@@ -451,6 +471,23 @@ public class Game {
                 .mapToInt(e -> e.getKey())
                 .boxed()
                 .sorted(lowest ? Integer::compareTo : Comparator.reverseOrder())
+                .findFirst()
+                .orElse(-1);
+    }
+
+    // Helpers for Four-of-a-Kind AI preference
+    private int getQuadsRankIfFourKind(Hand h) {
+        return h.getRankCounts().entrySet().stream()
+                .filter(e -> e.getValue() == 4L)
+                .mapToInt(e -> e.getKey())
+                .findFirst()
+                .orElse(-1);
+    }
+
+    private int getKickerRankIfFourKind(Hand h) {
+        return h.getRankCounts().entrySet().stream()
+                .filter(e -> e.getValue() == 1L)
+                .mapToInt(e -> e.getKey())
                 .findFirst()
                 .orElse(-1);
     }
