@@ -22,10 +22,24 @@ public class Player {
         this.middleHand = null;
         this.backHand = null;
     }
+
     public void setHands(Hand frontHand, Hand middleHand, Hand backHand) {
         this.frontHand = frontHand;
         this.middleHand = middleHand;
         this.backHand = backHand;
+
+        // 🔎 Log builds to console whenever hands are set
+        System.out.println("Player: " + name);
+        if (backHand != null) {
+            System.out.println("  Back Hand:   " + backHand + " (" + HandEvaluator.getHandName(backHand) + ")");
+        }
+        if (middleHand != null) {
+            System.out.println("  Middle Hand: " + middleHand + " (" + HandEvaluator.getHandName(middleHand) + ")");
+        }
+        if (frontHand != null) {
+            System.out.println("  Front Hand:  " + frontHand + " (" + HandEvaluator.getHandName(frontHand) + ")");
+        }
+        System.out.println("-------------------------------------------------");
     }
 
     public String getId() {

@@ -30,7 +30,7 @@ public class HandEvaluator {
         } else if (hand1.getCards().size() == 3) {
             return compareThreeCardHands(hand1, hand2);
         }
-        
+
         return 0;
     }
 
@@ -68,53 +68,22 @@ public class HandEvaluator {
         if (isStraight && isFlush && hand.getCards().get(4).getRank() == 14) {
             return HandRank.ROYAL_FLUSH;
         }
-
-        if (isStraight && isFlush) {
-            return HandRank.STRAIGHT_FLUSH;
-        }
-
-        if (rankCounts.containsValue(4L)) {
-            return HandRank.FOUR_OF_A_KIND;
-        }
-        
-        if (rankCounts.containsValue(3L) && rankCounts.containsValue(2L)) {
-            return HandRank.FULL_HOUSE;
-        }
-
-        if (isFlush) {
-            return HandRank.FLUSH;
-        }
-
-        if (isStraight) {
-            return HandRank.STRAIGHT;
-        }
-
-        if (rankCounts.containsValue(3L)) {
-            return HandRank.THREE_OF_A_KIND;
-        }
-
-        if (rankCounts.values().stream().filter(count -> count == 2L).count() == 2) {
-            return HandRank.TWO_PAIR;
-        }
-
-        if (rankCounts.containsValue(2L)) {
-            return HandRank.PAIR;
-        }
-
+        if (isStraight && isFlush) return HandRank.STRAIGHT_FLUSH;
+        if (rankCounts.containsValue(4L)) return HandRank.FOUR_OF_A_KIND;
+        if (rankCounts.containsValue(3L) && rankCounts.containsValue(2L)) return HandRank.FULL_HOUSE;
+        if (isFlush) return HandRank.FLUSH;
+        if (isStraight) return HandRank.STRAIGHT;
+        if (rankCounts.containsValue(3L)) return HandRank.THREE_OF_A_KIND;
+        if (rankCounts.values().stream().filter(c -> c == 2L).count() == 2) return HandRank.TWO_PAIR;
+        if (rankCounts.containsValue(2L)) return HandRank.PAIR;
         return HandRank.HIGH_CARD;
     }
 
     public static HandRank evaluateThreeCardHand(Hand hand) {
         Map<Integer, Long> rankCounts = hand.getRankCounts();
-        
-        if (rankCounts.containsValue(3L)) {
-            return HandRank.THREE_OF_A_KIND;
-        }
 
-        if (rankCounts.containsValue(2L)) {
-            return HandRank.PAIR;
-        }
-        
+        if (rankCounts.containsValue(3L)) return HandRank.THREE_OF_A_KIND;
+        if (rankCounts.containsValue(2L)) return HandRank.PAIR;
         return HandRank.HIGH_CARD;
     }
 
@@ -133,30 +102,22 @@ public class HandEvaluator {
                 List<Integer> rankedRanks2 = getRankedRanks(counts2);
                 for (int i = 0; i < rankedRanks1.size(); i++) {
                     int cmp = Integer.compare(rankedRanks1.get(i), rankedRanks2.get(i));
-                    if (cmp != 0) {
-                        return cmp;
-                    }
+                    if (cmp != 0) return cmp;
                 }
                 break;
 
             case STRAIGHT:
             case STRAIGHT_FLUSH:
-                int topCard1 = getStraightTopCard(hand1);
-                int topCard2 = getStraightTopCard(hand2);
-                return Integer.compare(topCard1, topCard2);
+                return Integer.compare(getStraightTopCard(hand1), getStraightTopCard(hand2));
 
             default:
                 List<Card> cards1 = hand1.getCards();
                 List<Card> cards2 = hand2.getCards();
                 for (int i = cards1.size() - 1; i >= 0; i--) {
                     int cmp = Integer.compare(cards1.get(i).getRank(), cards2.get(i).getRank());
-                    if (cmp != 0) {
-                        return cmp;
-                    }
+                    if (cmp != 0) return cmp;
                 }
-                break;
         }
-
         return 0;
     }
 
@@ -172,26 +133,21 @@ public class HandEvaluator {
                 List<Integer> rankedRanks2 = getRankedRanks(counts2);
                 for (int i = 0; i < rankedRanks1.size(); i++) {
                     int cmp = Integer.compare(rankedRanks1.get(i), rankedRanks2.get(i));
-                    if (cmp != 0) {
-                        return cmp;
-                    }
+                    if (cmp != 0) return cmp;
                 }
                 break;
+
             default:
                 List<Card> cards1 = hand1.getCards();
                 List<Card> cards2 = hand2.getCards();
                 for (int i = cards1.size() - 1; i >= 0; i--) {
                     int cmp = Integer.compare(cards1.get(i).getRank(), cards2.get(i).getRank());
-                    if (cmp != 0) {
-                        return cmp;
-                    }
+                    if (cmp != 0) return cmp;
                 }
-                break;
         }
-
         return 0;
     }
-    
+
     private static List<Integer> getRankedRanks(Map<Integer, Long> counts) {
         List<Integer> result = new ArrayList<>();
         counts.entrySet().stream().filter(e -> e.getValue() == 4).map(Map.Entry::getKey).sorted(Comparator.reverseOrder()).forEach(result::add);
@@ -202,23 +158,31 @@ public class HandEvaluator {
     }
 
     private static boolean isStraight(Hand hand) {
+        // Get sorted list of unique ranks
         List<Integer> ranks = hand.getCards().stream()
                 .map(Card::getRank)
-                .distinct()
+                .distinct() // <-- remove duplicates
                 .sorted()
                 .collect(Collectors.toList());
-        
-        // Special case: Ace-low straight (A=14, but treat as 1)
-        if (ranks.equals(List.of(2, 3, 4, 5, 14))) {
+
+        // Special case: A2345 (Ace can be low)
+        if (ranks.contains(14) && ranks.contains(2) && ranks.contains(3) && ranks.contains(4) && ranks.contains(5)) {
             return true;
         }
 
-        for (int i = 0; i < ranks.size() - 1; i++) {
-            if (ranks.get(i) + 1 != ranks.get(i + 1)) {
-                return false;
+        // Now check for 5 consecutive numbers
+        for (int i = 0; i <= ranks.size() - 5; i++) {
+            boolean straight = true;
+            for (int j = 0; j < 4; j++) {
+                if (ranks.get(i + j) + 1 != ranks.get(i + j + 1)) {
+                    straight = false;
+                    break;
+                }
             }
+            if (straight) return true;
         }
-        return true;
+
+        return false;
     }
 
     private static int getStraightTopCard(Hand hand) {
@@ -228,12 +192,8 @@ public class HandEvaluator {
                 .sorted()
                 .collect(Collectors.toList());
 
-        // Special case: A-2-3-4-5 should count as 5 high (weakest straight)
-        if (ranks.equals(List.of(2, 3, 4, 5, 14))) {
-            return 5;
-        }
-
-        return ranks.get(ranks.size() - 1); // highest card normally
+        if (ranks.equals(List.of(2, 3, 4, 5, 14))) return 5; // wheel straight
+        return ranks.get(ranks.size() - 1);
     }
 
     private static boolean isFlush(Hand hand) {
@@ -241,5 +201,18 @@ public class HandEvaluator {
                 .map(Card::getSuit)
                 .collect(Collectors.toSet());
         return suits.size() == 1;
+    }
+
+    // ✅ Public wrapper for getting hand name
+    public static String getHandName(Hand hand) {
+        HandRank rank;
+        if (hand.getCards().size() == 5) {
+            rank = evaluateFiveCardHand(hand);
+        } else if (hand.getCards().size() == 3) {
+            rank = evaluateThreeCardHand(hand);
+        } else {
+            rank = HandRank.HIGH_CARD;
+        }
+        return rank.toString().replace("_", " ");
     }
 }
