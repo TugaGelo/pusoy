@@ -30,14 +30,14 @@ public class Player {
 
         // 🔎 Log builds to console whenever hands are set
         System.out.println("Player: " + name);
-        if (backHand != null) {
-            System.out.println("  Back Hand:   " + backHand + " (" + HandEvaluator.getHandName(backHand) + ")");
+        if (frontHand != null) {
+            System.out.println("  Front Hand:  " + frontHand + " (" + HandEvaluator.getHandName(frontHand) + ")");
         }
         if (middleHand != null) {
             System.out.println("  Middle Hand: " + middleHand + " (" + HandEvaluator.getHandName(middleHand) + ")");
         }
-        if (frontHand != null) {
-            System.out.println("  Front Hand:  " + frontHand + " (" + HandEvaluator.getHandName(frontHand) + ")");
+        if (backHand != null) {
+            System.out.println("  Back Hand:   " + backHand + " (" + HandEvaluator.getHandName(backHand) + ")");
         }
         System.out.println("-------------------------------------------------");
     }
