@@ -20,39 +20,49 @@ public class AIHandBuilder {
     public static Partition buildBestPartition(List<Card> cards13) {
         if (cards13 == null || cards13.size() != 13) return null;
 
-        // Work on a stable sorted copy (ascending by rank) to get deterministic results
         List<Card> pool = new ArrayList<>(cards13);
         pool.sort(Comparator.comparingInt(card -> card.getRank().getValue()));
 
-        List<Partition> candidates = new ArrayList<>();
+        List<Partition> candidates = Collections.synchronizedList(new ArrayList<>());
 
         List<List<Card>> firstFives = combinations5(pool);
-        for (List<Card> fiveA : firstFives) {
-            List<Card> rem8 = subtract(pool, fiveA);
-            List<List<Card>> secondFives = combinations5(rem8);
-            for (List<Card> fiveB : secondFives) {
-                Hand hA = new Hand(new ArrayList<>(fiveA));
-                Hand hB = new Hand(new ArrayList<>(fiveB));
-                hA.sortCardsByRank();
-                hB.sortCardsByRank();
-                int cmp = HandEvaluator.compareHands(hA, hB);
-                if (cmp == 0) continue; // back must be strictly > middle
-                List<Card> back = (cmp > 0) ? fiveA : fiveB;
-                List<Card> middle = (cmp > 0) ? fiveB : fiveA;
 
-                List<Card> pool8 = subtract(pool, back);
-                Partition normalized = normalizeMiddleAndFront(back, middle, pool8);
-                // Ensure strict back > middle after normalization
-                if (HandEvaluator.compareHands(new Hand(normalized.back), new Hand(normalized.middle)) <= 0) {
-                    continue;
+        firstFives.parallelStream()
+            .forEach(fiveA -> {
+                List<Card> rem8 = subtract(pool, fiveA);
+                List<List<Card>> secondFives = combinations5(rem8);
+
+                for (List<Card> fiveB : secondFives) {
+                    Hand hA = new Hand(new ArrayList<>(fiveA));
+                    Hand hB = new Hand(new ArrayList<>(fiveB));
+                    hA.sortCardsByRank();
+                    hB.sortCardsByRank();
+
+                    // Early pruning: skip pairs where back hand is weak (adjust threshold as needed)
+                    if (HandEvaluator.evaluateFiveCardHand(hA).ordinal() < HandEvaluator.HandRank.PAIR.ordinal()
+                        && HandEvaluator.evaluateFiveCardHand(hB).ordinal() < HandEvaluator.HandRank.PAIR.ordinal()) {
+                        continue;
+                    }
+
+                    int cmp = HandEvaluator.compareHands(hA, hB);
+                    if (cmp == 0) continue; // back must be strictly > middle
+
+                    List<Card> back = (cmp > 0) ? fiveA : fiveB;
+                    List<Card> middle = (cmp > 0) ? fiveB : fiveA;
+
+                    List<Card> pool8 = subtract(pool, back);
+                    Partition normalized = normalizeMiddleAndFront(back, middle, pool8);
+
+                    if (HandEvaluator.compareHands(new Hand(normalized.back), new Hand(normalized.middle)) <= 0) {
+                        continue;
+                    }
+
+                    candidates.add(normalized);
                 }
-                candidates.add(normalized);
-            }
-        }
+            });
 
         if (candidates.isEmpty()) return null;
 
-        // sort candidates by AI preference
         candidates.sort((p1, p2) -> {
             int backCmp = aiCompareHandsForSorting(new Hand(p1.back), new Hand(p2.back));
             if (backCmp != 0) return -backCmp;
