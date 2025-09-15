@@ -25,10 +25,9 @@ public class Game {
     }
 
     private void initializeDeck() {
-        String[] suits = {"Hearts", "Diamonds", "Clubs", "Spades"};
-        for (String suit : suits) {
+        for (Suit suit : Suit.values()) {
             for (Rank rank : Rank.values()) {
-                deck.add(new Card(suit, rank.getValue()));
+                deck.add(new Card(suit, rank));
             }
         }
     }
@@ -47,7 +46,7 @@ public class Game {
 
     public void sortPlayerHand(Player player) {
         if (player != null && player.getHand() != null) {
-            Collections.sort(player.getHand().getCards(), Comparator.comparingInt(Card::getRank));
+            Collections.sort(player.getHand().getCards(), Comparator.comparingInt(card -> card.getRank().getValue()));
         }
     }
 
@@ -63,33 +62,24 @@ public class Game {
         return true;
     }
 
-    /**
-     * Set AI hands for the player.
-     *  - First check for auto-wins (calls AutoWinChecker). If present, we still build a partition but you could
-     *    choose to treat those differently (e.g. mark player as auto-win).
-     *  - Otherwise use AIHandBuilder to produce a partition and set hands.
-     */
     public void setAIHands(Player player) {
         if (player == null || player.getHand() == null || player.getHand().getCards().size() != 13) {
             System.out.println("AI setup failed: invalid hand size.");
             return;
         }
 
-        // check auto wins
         AutoWinChecker.AutoWinType aw = AutoWinChecker.detectAutoWin(player.getHand().getCards());
         if (aw != AutoWinChecker.AutoWinType.NONE) {
             System.out.println(player.getName() + " has auto-win: " + aw);
-            // you might want special handling here (e.g., award immediately). For now, we'll still split normally.
+            // special handling can be added here
         }
 
-        // Build partition using AIHandBuilder
         Partition p = AIHandBuilder.buildBestPartition(player.getHand().getCards());
         if (p != null) {
             boolean ok = setPlayerHands(player, new Hand(p.front), new Hand(p.middle), new Hand(p.back));
             if (!ok) {
-                // fallback: try naive split (strongest back, next middle, last front)
                 List<Card> pool = new ArrayList<>(player.getHand().getCards());
-                pool.sort(Comparator.comparingInt(Card::getRank));
+                pool.sort(Comparator.comparingInt(card -> card.getRank().getValue()));
                 Hand backHand = new Hand(new ArrayList<>(pool.subList(8, 13)));
                 List<Card> pool8 = subtract(pool, backHand.getCards());
                 Hand middleHand = new Hand(new ArrayList<>(pool8.subList(3, 8)));
@@ -103,9 +93,8 @@ public class Game {
             return;
         }
 
-        // If AI builder failed, fallback to simple split
         List<Card> pool = new ArrayList<>(player.getHand().getCards());
-        pool.sort(Comparator.comparingInt(Card::getRank));
+        pool.sort(Comparator.comparingInt(card -> card.getRank().getValue()));
         Hand backHand = new Hand(new ArrayList<>(pool.subList(8, 13)));
         List<Card> pool8 = subtract(pool, backHand.getCards());
         Hand middleHand = new Hand(new ArrayList<>(pool8.subList(3, 8)));
@@ -114,7 +103,6 @@ public class Game {
         System.out.println(player.getName() + " (AI) naive split applied.");
     }
 
-    // expose comparator showdown function unchanged
     public void compareAllPlayerHands() {
         System.out.println("\n--- Starting the Showdown ---");
         Player humanPlayer = players.get(0);
@@ -140,7 +128,6 @@ public class Game {
         }
     }
 
-    // small identity subtract helper used by fallback
     private List<Card> subtract(List<Card> from, List<Card> toRemove) {
         List<Card> result = new ArrayList<>(from);
         for (Card r : toRemove) {

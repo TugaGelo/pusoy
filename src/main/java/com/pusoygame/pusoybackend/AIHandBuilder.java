@@ -22,7 +22,7 @@ public class AIHandBuilder {
 
         // Work on a stable sorted copy (ascending by rank) to get deterministic results
         List<Card> pool = new ArrayList<>(cards13);
-        pool.sort(Comparator.comparingInt(Card::getRank));
+        pool.sort(Comparator.comparingInt(card -> card.getRank().getValue()));
 
         List<Partition> candidates = new ArrayList<>();
 
@@ -83,7 +83,7 @@ public class AIHandBuilder {
         if (allHighCards) {
             // Sort pool8 ascending by rank
             List<Card> sorted = new ArrayList<>(pool8);
-            sorted.sort(Comparator.comparingInt(Card::getRank));
+            sorted.sort(Comparator.comparingInt(card -> card.getRank().getValue()));
 
             // Middle: 4 lowest + highest
             List<Card> middle = new ArrayList<>();
@@ -110,14 +110,14 @@ public class AIHandBuilder {
                 return new Partition(new ArrayList<>(back), new ArrayList<>(proposedMiddle), front);
             }
             List<Card> remaining = subtract(pool8, core);
-            remaining.sort(Comparator.comparingInt(Card::getRank));
+            remaining.sort(Comparator.comparingInt(card -> card.getRank().getValue()));
             int need = 5 - core.size();
             List<Card> fillers = new ArrayList<>();
             for (int i = 0; i < need && i < remaining.size(); i++) fillers.add(remaining.get(i));
             List<Card> newMiddle = new ArrayList<>(core);
             newMiddle.addAll(fillers);
             List<Card> afterMiddle = subtract(pool8, newMiddle);
-            afterMiddle.sort(Comparator.comparingInt(Card::getRank));
+            afterMiddle.sort(Comparator.comparingInt(card -> card.getRank().getValue()));
             List<Card> newFront = new ArrayList<>();
             int n = afterMiddle.size();
             if (n >= 3) {
@@ -137,7 +137,7 @@ public class AIHandBuilder {
 
     private static List<Card> pickLowestCoreFor(List<Card> pool8, HandEvaluator.HandRank category) {
         int[] counts = new int[15];
-        for (Card c : pool8) counts[c.getRank()]++;
+        for (Card c : pool8) counts[c.getRank().getValue()]++;
         if (category == HandEvaluator.HandRank.THREE_OF_A_KIND) {
             for (int r = 2; r <= 14; r++) if (counts[r] >= 3) return takeNOfRank(pool8, r, 3);
             return null;
@@ -146,7 +146,10 @@ public class AIHandBuilder {
             for (int r = 2; r <= 14; r++) {
                 if (counts[r] >= 2) {
                     if (first == null) first = r;
-                    else { second = r; break; }
+                    else {
+                        second = r;
+                        break;
+                    }
                 }
             }
             if (first != null && second != null) {
@@ -166,7 +169,7 @@ public class AIHandBuilder {
     private static List<Card> takeNOfRank(List<Card> cards, int rank, int n) {
         List<Card> out = new ArrayList<>();
         for (Card c : cards) {
-            if (c.getRank() == rank) {
+            if (c.getRank().getValue() == rank) {
                 out.add(c);
                 if (out.size() == n) break;
             }

@@ -65,7 +65,7 @@ public class HandEvaluator {
         boolean isFlush = isFlush(hand);
         boolean isStraight = isStraight(hand);
 
-        if (isStraight && isFlush && hand.getCards().get(4).getRank() == 14) {
+        if (isStraight && isFlush && hand.getCards().get(4).getRank().getValue() == 14) {
             return HandRank.ROYAL_FLUSH;
         }
         if (isStraight && isFlush) return HandRank.STRAIGHT_FLUSH;
@@ -114,7 +114,7 @@ public class HandEvaluator {
                 List<Card> cards1 = hand1.getCards();
                 List<Card> cards2 = hand2.getCards();
                 for (int i = cards1.size() - 1; i >= 0; i--) {
-                    int cmp = Integer.compare(cards1.get(i).getRank(), cards2.get(i).getRank());
+                    int cmp = Integer.compare(cards1.get(i).getRank().getValue(), cards2.get(i).getRank().getValue());
                     if (cmp != 0) return cmp;
                 }
         }
@@ -141,7 +141,7 @@ public class HandEvaluator {
                 List<Card> cards1 = hand1.getCards();
                 List<Card> cards2 = hand2.getCards();
                 for (int i = cards1.size() - 1; i >= 0; i--) {
-                    int cmp = Integer.compare(cards1.get(i).getRank(), cards2.get(i).getRank());
+                    int cmp = Integer.compare(cards1.get(i).getRank().getValue(), cards2.get(i).getRank().getValue());
                     if (cmp != 0) return cmp;
                 }
         }
@@ -158,10 +158,9 @@ public class HandEvaluator {
     }
 
     private static boolean isStraight(Hand hand) {
-        // Get sorted list of unique ranks
         List<Integer> ranks = hand.getCards().stream()
-                .map(Card::getRank)
-                .distinct() // <-- remove duplicates
+                .map(card -> card.getRank().getValue())
+                .distinct() // remove duplicates
                 .sorted()
                 .collect(Collectors.toList());
 
@@ -170,7 +169,7 @@ public class HandEvaluator {
             return true;
         }
 
-        // Now check for 5 consecutive numbers
+        // Check for 5 consecutive numbers
         for (int i = 0; i <= ranks.size() - 5; i++) {
             boolean straight = true;
             for (int j = 0; j < 4; j++) {
@@ -187,7 +186,7 @@ public class HandEvaluator {
 
     private static int getStraightTopCard(Hand hand) {
         List<Integer> ranks = hand.getCards().stream()
-                .map(Card::getRank)
+                .map(card -> card.getRank().getValue())
                 .distinct()
                 .sorted()
                 .collect(Collectors.toList());
@@ -197,13 +196,13 @@ public class HandEvaluator {
     }
 
     private static boolean isFlush(Hand hand) {
-        Set<String> suits = hand.getCards().stream()
+        Set<Suit> suits = hand.getCards().stream()
                 .map(Card::getSuit)
                 .collect(Collectors.toSet());
         return suits.size() == 1;
     }
 
-    // ✅ Public wrapper for getting hand name
+    // Public wrapper for getting hand name
     public static String getHandName(Hand hand) {
         HandRank rank;
         if (hand.getCards().size() == 5) {

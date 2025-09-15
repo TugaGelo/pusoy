@@ -28,7 +28,7 @@ public class Player {
         this.middleHand = middleHand;
         this.backHand = backHand;
 
-        // 🔎 Log builds to console whenever hands are set
+        // Logging builds to console whenever hands are set
         System.out.println("Player: " + name);
         if (frontHand != null) {
             System.out.println("  Front Hand:  " + frontHand + " (" + HandEvaluator.getHandName(frontHand) + ")");
