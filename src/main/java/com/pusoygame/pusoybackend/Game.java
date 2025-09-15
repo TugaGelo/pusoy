@@ -27,11 +27,9 @@ public class Game {
     private void initializeDeck() {
         String[] suits = {"Hearts", "Diamonds", "Clubs", "Spades"};
         for (String suit : suits) {
-            for (int rank = 2; rank <= 10; rank++) deck.add(new Card(suit, rank));
-            deck.add(new Card(suit, 11));
-            deck.add(new Card(suit, 12));
-            deck.add(new Card(suit, 13));
-            deck.add(new Card(suit, 14));
+            for (Rank rank : Rank.values()) {
+                deck.add(new Card(suit, rank.getValue()));
+            }
         }
     }
 
